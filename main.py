@@ -5,21 +5,35 @@ import serial
 import serial.tools.list_ports
 import time
 import threading
-
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QWidget, QApplication
 from sp_ui import Ui_Form
 
-from sp_ui import Ui_Form
+
 from qt_material import apply_stylesheet
 com_rx_buf = ''  # 接收缓冲区
 com_tx_buf = ''  # 发送缓冲区
 COMM = serial.Serial()  # 定义串口对象
 port_list: list  # 可用串口列表
 port_select: list  # 选择好的串口
-
+ui: Ui_Form
 
 # 无串口返回0，
 # 返回可用的串口列表
+
+
+class TextEditSignal(QObject):
+    update_text = Signal(str)
+
+
+textEditSignal = TextEditSignal()
+
+
+def update_text_edit(data):
+    text = data.decode('utf-8') + "\r"
+    textEditSignal.update_text.emit(text)
+
+
 def get_com_list():
     global port_list
     # a = serial.tools.list_ports.comports()
@@ -40,7 +54,7 @@ def set_com_port(n=0):
 def serial_open(n=0):
     global COMM
     serial_port = set_com_port(n)
-    COMM = serial.Serial(serial_port, 115200, timeout=0.01)
+    COMM = serial.Serial(serial_port, 115200, timeout=0)
     if COMM.isOpen():
         print(serial_port, "open success")
         return 0
@@ -78,18 +92,31 @@ def get_com_tx_buf():
 
 def thread_com_receive():
     rx_buf = []
+    global ui
 
     while True:
         try:
 
-            rx_buf.extend(COMM.read_all())  # 转化为整型数字
-            a = rx_buf.__len__()
-            time.sleep(0.01)
-            rx_buf.extend(COMM.read_all())  # 转化为整型数字
-            b = rx_buf.__len__()
-            if a == b and a != 0:
-                print("串口收到消息:", rx_buf.__len__())
-                rx_buf.clear()
+            # rx_buf.extend(COMM.read_all())  # 转化为整型数字
+            # a = rx_buf.__len__()
+            # time.sleep(0.01)
+            # rx_buf.extend(COMM.read_all())  # 转化为整型数字
+            # b = rx_buf.__len__()
+            # if a == b and a != 0:
+            #     print("串口收到消息:", rx_buf.__len__())
+            #     rx_buf.clear()
+            # 等待空闲中断触发
+            # COMM.reset_input_buffer()
+            # COMM.read_until(b'\r\n')
+
+            # 读取数据
+            data = COMM.read_until(b'\r\n\r\n').strip()
+            # print(data.decode('utf-8'))
+            # rx_buf.extend(data.decode('utf-8'))
+            update_text_edit(data)
+
+            # ui.textEdit.setPlainText(data.decode('utf-8')+"\r")
+
         except IOError:
             pass
     pass
@@ -147,8 +174,10 @@ def serial_init():
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.ui = Ui_Form()
-        self.ui.setupUi(self)
+        global ui
+        ui = Ui_Form()
+        ui.setupUi(self)
+        textEditSignal.update_text.connect(ui.textEdit.setPlainText)
 
 
 if __name__ == '__main__':
@@ -159,7 +188,9 @@ if __name__ == '__main__':
     serial_open(1)
     thread1 = threading.Thread(target=thread_com_receive)
     thread1.start()
-
+    COMM.timeout = 1
+    COMM.write_timeout = 1
+    COMM.inter_byte_timeout = 0.5
     buf = [33, 2, 0x55, 1, 4]
     COMM.write(buf)
     app = QApplication(sys.argv)
