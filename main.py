@@ -183,9 +183,9 @@ class MainWindow(QWidget):
 if __name__ == '__main__':
     port_list = get_com_list()
     length = port_list.__len__()
-    device = port_list[1].device
+    device = port_list[0].device
     print(length, device)
-    serial_open(1)
+    serial_open(0)
     thread1 = threading.Thread(target=thread_com_receive)
     thread1.start()
     COMM.timeout = 1
@@ -201,4 +201,3 @@ if __name__ == '__main__':
     window.show()
     sys.exit(app.exec())
     # serial_close()
-    
