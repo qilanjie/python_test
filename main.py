@@ -3,11 +3,10 @@ import sys
 
 import serial
 import serial.tools.list_ports
-import time
 import threading
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QWidget, QApplication
-from sp_ui import Ui_Form
+from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtWidgets import QWidget, QApplication, QMessageBox
+from ui_sp_ui import Ui_Form
 
 
 from qt_material import apply_stylesheet
@@ -17,6 +16,7 @@ COMM = serial.Serial()  # 定义串口对象
 port_list: list  # 可用串口列表
 port_select: list  # 选择好的串口
 ui: Ui_Form
+is_com_open: bool
 
 # 无串口返回0，
 # 返回可用的串口列表
@@ -50,46 +50,6 @@ def set_com_port(n=0):
     return port_select.device
 
 
-# 打开串口
-def serial_open(n=0):
-    global COMM
-    serial_port = set_com_port(n)
-    COMM = serial.Serial(serial_port, 115200, timeout=0)
-    if COMM.isOpen():
-        print(serial_port, "open success")
-        return 0
-    else:
-        print("open failed")
-        return 255
-
-
-# 关闭串口
-def serial_close():
-    global COMM
-    COMM.close()
-    print(COMM.name + "closed.")
-
-
-def set_com_rx_buf(my_buf=''):
-    global com_rx_buf
-    com_rx_buf = my_buf
-
-
-def set_com_tx_buf(my_buf=''):
-    global com_tx_buf
-    com_tx_buf = my_buf
-
-
-def get_com_rx_buf():
-    global com_rx_buf
-    return com_rx_buf
-
-
-def get_com_tx_buf():
-    global com_tx_buf
-    return com_tx_buf
-
-
 def thread_com_receive():
     rx_buf = []
     global ui
@@ -116,59 +76,12 @@ def thread_com_receive():
             update_text_edit(data)
 
             # ui.textEdit.setPlainText(data.decode('utf-8')+"\r")
-
+            if not is_com_open:
+                break
+                print("接收线程退出了")
         except IOError:
             pass
     pass
-
-
-# def serial_encode(addr=0, command=0, param1=0, param0=0):
-#     my_buf = [addr, command, param1, param0, 0, 0, 0, 0]
-#     print(my_buf)
-#     return my_buf
-
-
-def serial_send_command(addr=0, command=0, param1=0, param0=0, data3=0, data2=0, data1=0, data0=0):
-    my_buf = [addr, command, param1, param0, data3, data2, data1, data0]
-    COMM.write(my_buf)
-    pass
-
-
-def serial_init():
-    my_buf = "AT+CG\r\n"
-    COMM.write(my_buf)
-    time.sleep(0.05)
-    my_buf = COMM.read_all()
-    if my_buf != "OK\r\n":
-        return 254  # 进入调试模式失败
-
-    my_buf = "AT+CAN_MODE=0\r\n"
-    COMM.write(my_buf)
-    time.sleep(0.05)
-    my_buf = COMM.read_all()
-    if my_buf != "OK\r\n":
-        return 253  # 进入正常模式失败，模块处于1状态，即环回模式中
-
-    my_buf = "AT+CAN_BAUD=500000\r\n"
-    COMM.write(my_buf)
-    time.sleep(0.05)
-    my_buf = COMM.read_all()
-    if my_buf != "OK\r\n":
-        return 253  # 波特率设置失败
-
-    my_buf = "AT+FRAMEFORMAT=1,0,\r\n"
-    COMM.write(my_buf)
-    time.sleep(0.05)
-    my_buf = COMM.read_all()
-    if my_buf != "OK\r\n":
-        return 253  # 波特率设置失败
-
-    my_buf = "AT+ET\r\n"  # 进入透传模式
-    COMM.write(my_buf)
-    time.sleep(0.05)
-    my_buf = COMM.read_all()
-    if my_buf != "OK\r\n":
-        return 255  # 不是CAN模块
 
 
 class MainWindow(QWidget):
@@ -178,6 +91,49 @@ class MainWindow(QWidget):
         ui = Ui_Form()
         ui.setupUi(self)
         textEditSignal.update_text.connect(ui.textEdit.setPlainText)
+        port_list = get_com_list()
+        for number in port_list:     # 循环获取列表中单个元素
+            # 单个元素为类 serial.tools.list_ports.ListPortInfo 获取类中的 device 属性，添加在列表中
+            ui.comboBox.addItem(number.device)  # 将串口设备添加到列表中
+        ui.pushButton.clicked.connect(self.pBtn_Serial_Open_Slot)
+    # 打开串口槽函数
+
+    @Slot()
+    def pBtn_Serial_Open_Slot(self):
+        global COMM, is_com_open
+        print(ui.pushButton.text())
+        if (ui.pushButton.text() == "打开串口"):
+            choice_serial_port_number = ui.comboBox.currentText()
+
+            try:
+                COMM = serial.Serial(choice_serial_port_number, 115200, timeout=0
+                                     )
+                if COMM.is_open:
+                    is_com_open = True
+                    print("串口已经打开", COMM.name)
+                    ui.pushButton.setText("关闭串口")
+                    thread1 = threading.Thread(target=thread_com_receive)
+                    thread1.start()
+
+                    COMM.timeout = 1
+                    COMM.write_timeout = 1
+                    COMM.inter_byte_timeout = 0.5
+                    buf = [33, 2, 0x55, 1, 4]
+                    COMM.write(buf)
+            except Exception as error:
+                if "拒绝访问" in str(error):
+                    QMessageBox.information(
+                        self, "Error", "串口拒绝访问", QMessageBox.Yes, QMessageBox.Yes)
+                else:
+                    QMessageBox.information(
+                        self, "Error", "打开失败", QMessageBox.Yes, QMessageBox.Yes)
+
+                print(error)
+        else:
+            COMM.close()
+            print(COMM.name + "closed.")
+            is_com_open = False
+            ui.pushButton.setText("打开串口")
 
 
 if __name__ == '__main__':
@@ -185,19 +141,14 @@ if __name__ == '__main__':
     length = port_list.__len__()
     device = port_list[1].device
     print(length, device)
-    serial_open(1)
-    thread1 = threading.Thread(target=thread_com_receive)
-    thread1.start()
-    COMM.timeout = 1
-    COMM.write_timeout = 1
-    COMM.inter_byte_timeout = 0.5
-    buf = [33, 2, 0x55, 1, 4]
-    COMM.write(buf)
+    # serial_open(1)
+
     app = QApplication(sys.argv)
     window = MainWindow()
     window.setGeometry(150, 150, 640, 480)
     window.setWindowTitle("串口通信")
     apply_stylesheet(app, theme='light_blue_500.xml')
+
     window.show()
     sys.exit(app.exec())
     # serial_close()
