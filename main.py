@@ -77,8 +77,11 @@ def thread_com_receive():
 
             # ui.textEdit.setPlainText(data.decode('utf-8')+"\r")
             if not is_com_open:
-                break
+                COMM.close()
+                print(COMM.name + " closed.")
                 print("接收线程退出了")
+                break
+
         except IOError:
             pass
     pass
@@ -130,8 +133,7 @@ class MainWindow(QWidget):
 
                 print(error)
         else:
-            COMM.close()
-            print(COMM.name + "closed.")
+
             is_com_open = False
             ui.pushButton.setText("打开串口")
 
@@ -139,8 +141,8 @@ class MainWindow(QWidget):
 if __name__ == '__main__':
     port_list = get_com_list()
     length = port_list.__len__()
-    device = port_list[1].device
-    print(length, device)
+    # device = port_list[1].device
+    # print(length, device)
     # serial_open(1)
 
     app = QApplication(sys.argv)
