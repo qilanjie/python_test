@@ -1,6 +1,7 @@
 
 import sys
-from PySide6.QtWidgets import QWidget, QApplication
+from PySide6.QtCore import QFile, QIODeviceBase, QTextStream
+from PySide6.QtWidgets import QWidget, QApplication, QLineEdit
 from ui_widget import Ui_Widget
 from qt_material import apply_stylesheet
 import rc_pic
@@ -13,18 +14,46 @@ class MainWindow(QWidget):
 
         ui = Ui_Widget()
         ui.setupUi(self)
+        ui.label_user_name.setScaledContents(True)
+        ui.label_pwd.setScaledContents(True)
+        ui.lineE_pwd.setEchoMode(QLineEdit.EchoMode.Password)
+        ui.btn_1.clicked.connect(self.set_style)
+        ui.btn_2.clicked.connect(self.set_style)
+        ui.btn_3.clicked.connect(self.set_style)
+        ui.btn_4.clicked.connect(self.set_style)
 
-# 封装修改样式工具
-# 定义一个专门用来操作qss样式的类
+    def set_style(self):
+        sender = self.sender()
+        if sender.objectName() == "btn_1":
+            filePath = ':/res/qss/style-1.qss'
+        if sender.objectName() == "btn_2":
+            filePath = ':/res/qss/style-2.qss'
+        if sender.objectName() == "btn_3":
+            filePath = ':/res/qss/style-3.qss'
+        if sender.objectName() == "btn_4":
+            filePath = ':/res/qss/style-4.qss'
+        print(filePath)
+        file = QFile(filePath)
+        file.open(QIODeviceBase.OpenModeFlag.ReadOnly)
+        filetext = QTextStream(file)
+        stylesheet = filetext.readAll()
+        self.setStyleSheet(stylesheet)
+        file.close()
 
 
-class QSSTool():
-    # 静态方法
+class QSSLoader:
+    def __init__(self):
+        pass
+
     @staticmethod
-    def setQssToObj(file_path, obj):
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            obj.setStyleSheet(content)
+    def read_qss_file(filePath):
+        file = QFile(filePath)
+        file.open(QIODeviceBase.OpenModeFlag.ReadOnly)
+        filetext = QTextStream(file)
+        stylesheet = filetext.readAll()
+
+        file.close()
+        return stylesheet
 
 
 if __name__ == '__main__':
@@ -34,8 +63,9 @@ if __name__ == '__main__':
     window.setGeometry(150, 150, 640, 480)
     window.setWindowTitle("登录界面")
 
-    QSSTool.setQssToObj("res/qss/style-4.qss", app)
-
+    style_file = ':/res/qss/style-1.qss'
+    style_sheet = QSSLoader.read_qss_file(style_file)
+    window.setStyleSheet(style_sheet)
     window.show()
     sys.exit(app.exec())
     # serial_close()
