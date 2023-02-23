@@ -77,15 +77,15 @@ class MainWindow(QWidget):
     def slot_timeout(self):
         self.mytime.stop()
         k = 0
-        label_items = []
+        self.label_items = []
         arr_pox_x = [20, 220, 420, 620, 820, 1020, 120, 320, 520, 720, 920]
         for i in range(self.name_items.__len__()):
 
             pos_x = arr_pox_x[k]
             k = k+1
-            label_items.append(MaskLabel(pos_x, self.name_items[i], self))
+            self.label_items.append(MaskLabel(pos_x, self.name_items[i], self))
 
-            label_items[i].show()
+            self.label_items[i].show()
             if k == 6:
                 time.sleep(1.5)
             elif k == 11:
