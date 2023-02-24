@@ -1,43 +1,44 @@
 
 import sys
-import time
-from PySide6.QtCore import QFile, QIODeviceBase, QTextStream, QTimer, QTime, QIODeviceBase, Qt, QPropertyAnimation, QPoint, QAbstractAnimation
+
+from PySide6.QtCore import QFile, QIODeviceBase, QTextStream, QTimer, QTime, QIODeviceBase, Qt, QPropertyAnimation, QPoint, QAbstractAnimation, QCoreApplication, QEventLoop
 from PySide6.QtWidgets import QWidget, QApplication, QLabel, QGraphicsOpacityEffect
 from ui_widget import Ui_Widget
-from qt_material import apply_stylesheet
 import rc_pic
 import rc_txt
 import random
 
 
 class MaskLabel(QLabel):
-    def __init__(self, pos_x, fans_name, parent):
+    def __init__(self, pos_x, fans_name,  parent=None):
         super().__init__(parent)
+
         self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.setStyleSheet("color:white;font-size:20px")
-        animation_fans = QPropertyAnimation(self, b"geometry")
-        animation_fans.setStartValue(QPoint(pos_x, 900))
+        parent.animation_fans = QPropertyAnimation(self, b'pos')
+        parent.animation_fans.setStartValue(QPoint(pos_x, 900))
         # 起始位置
-        animation_fans.setEndValue(QPoint(pos_x, -50))
+        parent.animation_fans.setEndValue(QPoint(pos_x, -50))
         # 结束位置
-        animation_fans.setDirection(QAbstractAnimation.Direction.Forward)
-        animation_fans.setDuration(15000)
+        parent.animation_fans.setDirection(
+            QAbstractAnimation.Direction.Forward)
+        parent.animation_fans.setDuration(15000)
         # 时长15妙
-        animation_fans.start(
+        parent.animation_fans.start(
             QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
         # 动画结束后自动关闭，释放内存
         self.setText("粉丝名称的长度设置初始化")
         self.adjustSize()
         self.setFixedHeight(50)
         self.setText(fans_name)
-        pGra = QGraphicsOpacityEffect(self)
-        pGra.setOpacity(0)
-        self.setGraphicsEffect(pGra)
-        animation_opa = QPropertyAnimation(pGra, b"opacity")
-        animation_opa.setDuration(2000)
-        animation_opa.setStartValue(0)
-        animation_opa.setEndValue(1)
-        animation_opa.start(
+        parent.pGra = QGraphicsOpacityEffect(parent)
+        parent.pGra.setOpacity(0)
+        parent.setGraphicsEffect(parent.pGra)
+        parent.animation_opa = QPropertyAnimation(parent.pGra, b"opacity")
+        parent.animation_opa.setDuration(2000)
+        parent.animation_opa.setStartValue(0)
+        parent.animation_opa.setEndValue(1)
+        parent.animation_opa.start(
             QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
 
 
@@ -56,7 +57,7 @@ class MainWindow(QWidget):
         if nameFile.open(QIODeviceBase.OpenModeFlag.ReadOnly) == False:
             return
         toText = QTextStream(nameFile)
-        # toText.setEncoding(QStringConverter.Encoding.System)
+
         self.name_items = []
 
         while not toText.atEnd():
@@ -83,20 +84,28 @@ class MainWindow(QWidget):
 
             pos_x = arr_pox_x[k]
             k = k+1
-            self.label_items.append(MaskLabel(pos_x, self.name_items[i], self))
 
-            self.label_items[i].show()
+            # self.label_items.append(MaskLabel(pos_x, self.name_items[i], self))
+
+            # self.label_items[i].show()
+            MaskLabel(pos_x, self.name_items[i], self).show()
             if k == 6:
-                time.sleep(1.5)
+                self.msleep(1500)
             elif k == 11:
                 k = 0
-                time.sleep(1.5)
-        self.ui.gridLayout.addWidget
-        time.sleep(15)
+                self.msleep(1500)
+
+        self.msleep(15000)
         for btn in self.btn_items:
             btn.show()
         self.ui.label_head.setText("幸运粉丝")
         self.ui.label_head.setStyleSheet("color:rgba(255,255,255,255)")
+
+    def msleep(self, msec):
+        dieTime = QTime.currentTime().addMSecs(msec)
+        while QTime.currentTime() < dieTime:
+            QCoreApplication.processEvents(
+                QEventLoop.ProcessEventsFlag.AllEvents, 200)
 
     def slot_btn_click(self):
         btn = self.sender()
