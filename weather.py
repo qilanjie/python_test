@@ -59,7 +59,7 @@ class Widget(QWidget):
         btn_close.clicked.connect(self.close)
 
         # 获取天气API
-        str_url = "http://wthrcdn.etouch.cn/weather_mini?city=深圳"
+        str_url = "https://api.caiyunapp.com/v2.5/q8LjHaWoqRApdVgf/121.6544,25.1552/weather.json"
         url = QUrl(str_url)
         self.manager = QNetworkAccessManager(self)
         self.request = QNetworkRequest(url)
@@ -80,27 +80,29 @@ class Widget(QWidget):
             return
 
         obj = doc.object()
-        if not obj.contains("data"):
+        if not obj.__contains__("result"):
             return
 
-        val = obj.value("data")
-        if not val.isObject():
+        val = obj.get("result")
+
+        if not "realtime" in val:
             return
 
-        jsonDate = val.toObject()
-        curr_temp = jsonDate.value("wendu").toString()
-        city = jsonDate.value("city").toString()
+        jsonDate = val.get("realtime")
+        print(jsonDate)
+        curr_temp = jsonDate.get("temperature")
+        city = jsonDate.get("city")
 
-        fore = jsonDate.value("forecast")
+        fore = jsonDate.get("forecast")
         if fore.isArray():
             Jsonarry = fore.toArray()
             for i in range(4):
                 weaobj = Jsonarry.at(i).toObject()
 
-                high = weaobj.value("high").toString()[3:]
-                low = weaobj.value("low").toString()[3:5]
-                Week = weaobj.value("date").toString()[2:]
-                weather = weaobj.value("type").toString()
+                high = weaobj.get("high")[3:]
+                low = weaobj.get("low")[3:5]
+                Week = weaobj.get("date")[2:]
+                weather = weaobj.get("type")
 
                 if i == 0:
                     self.label_temp.setText(curr_temp + "℃")
