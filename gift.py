@@ -15,30 +15,30 @@ class MaskLabel(QLabel):
 
         self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.setStyleSheet("color:white;font-size:20px")
-        parent.animation_fans = QPropertyAnimation(self, b'pos')
-        parent.animation_fans.setStartValue(QPoint(pos_x, 900))
+        self.animation_fans = QPropertyAnimation(self, b'pos')
+        self.animation_fans.setStartValue(QPoint(pos_x, 900))
         # 起始位置
-        parent.animation_fans.setEndValue(QPoint(pos_x, -50))
+        self.animation_fans.setEndValue(QPoint(pos_x, -50))
         # 结束位置
-        parent.animation_fans.setDirection(
+        self.animation_fans.setDirection(
             QAbstractAnimation.Direction.Forward)
-        parent.animation_fans.setDuration(15000)
+        self.animation_fans.setDuration(15000)
         # 时长15妙
-        parent.animation_fans.start(
+        self.animation_fans.start(
             QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
         # 动画结束后自动关闭，释放内存
         self.setText("粉丝名称的长度设置初始化")
         self.adjustSize()
         self.setFixedHeight(50)
         self.setText(fans_name)
-        parent.pGra = QGraphicsOpacityEffect(parent)
-        parent.pGra.setOpacity(0)
-        parent.setGraphicsEffect(parent.pGra)
-        parent.animation_opa = QPropertyAnimation(parent.pGra, b"opacity")
-        parent.animation_opa.setDuration(2000)
-        parent.animation_opa.setStartValue(0)
-        parent.animation_opa.setEndValue(1)
-        parent.animation_opa.start(
+        self.pGra = QGraphicsOpacityEffect(self)
+        self.pGra.setOpacity(0)
+        self.setGraphicsEffect(self.pGra)
+        self.animation_opa = QPropertyAnimation(self.pGra, b"opacity")
+        self.animation_opa.setDuration(2000)
+        self.animation_opa.setStartValue(0)
+        self.animation_opa.setEndValue(1)
+        self.animation_opa.start(
             QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
 
 
@@ -115,6 +115,8 @@ class MainWindow(QWidget):
         num = random.randrange(0, self.name_items.__len__())
         btn.setText(self.name_items[num])
         btn.setDisabled(True)
+        btn.setStyleSheet("QPushButton{color:rgb(75,152,204);background-color:rgb(100,0,0);border-radius:20px}"
+                          "QPushButton::hover{color:rgb(53,135,202)}")
 
 
 if __name__ == '__main__':
